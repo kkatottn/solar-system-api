@@ -64,7 +64,6 @@ def get_all_planets():
 
 
 
-
 # @planets_bp.route('', methods=['GET'])
 # def get_all_planets():
 #     planets_response = []
@@ -76,20 +75,79 @@ def get_all_planets():
 #     return jsonify(planets_response)
     
 
-# @planets_bp.route('/<planet_id>', methods=['GET'])
-# def get_one_planet(planet_id):
-#     try:
-#         planet_id = int(planet_id)
-#     except ValueError:
-#         rsp = {"msg" : f"Planet with id {planet_id} is invalid."}
-#         return jsonify(rsp), 400
+@planets_bp.route('/<planet_id>', methods=['GET'])
+def get_one_planet(planet_id):
+    try:
+        planet_id = int(planet_id)
+    except ValueError:
+        rsp = {"msg" : f"Planet with id {planet_id} is invalid."}
+        return jsonify(rsp), 400
         
-#     for planet in planets:
-#         if planet.id == planet_id:
-#             rsp = planet.get_dict()
+    planet = Planet.query.get(planet_id)
+    if planet is None:
+        rsp = {"msg" : f"Could not find planet with id {planet_id}."}
+        return jsonify(rsp), 404
+
+    rsp = {
+        'id' : planet.id,
+        'name' : planet.name,
+        'color' :planet.color,
+        'description' : planet.description
+    }
+
+    return jsonify(rsp), 200
+
+
+@planets_bp.route('/<planet_id>', methods=['PUT'])
+def update_one_planet(planet_id):
+    try:
+        planet_id = int(planet_id)
+    except ValueError:
+        rsp = {"msg" : f"Planet with id {planet_id} is invalid."}
+        return jsonify(rsp), 400
     
-#             return jsonify(rsp), 200
-#     rsp = {
-#         "msg" : f"Could not find planet with id {planet_id}."
-#     }
-#     return jsonify(rsp), 404
+    planet = Planet.query.get(planet_id)
+    if planet is None:
+        rsp = {'msg' : f'Could not find planet with id {planet_id}.'}
+        return jsonify(rsp), 404
+
+    request_body = request.get_json()
+    try:
+        planet.name = request_body['name']
+        planet.color = request_body['color']
+        planet.description = request_body['description']
+    except KeyError:
+        return {
+            'msg' : 'Update failed. name, color, and description are required!'
+        }, 400
+
+    db.session.commit()
+
+    return {
+        "msg" : f"Planet #{planet_id} successfully updated!"
+    }, 200
+
+@planets_bp.route('/<planet_id>', methods=['DELETE'])
+def delete_one_planet(planet_id):
+    try:
+        planet_id = int(planet_id)
+    except ValueError:
+        rsp = {"msg" : f"Planet with id {planet_id} is invalid."}
+        return jsonify(rsp), 400
+    
+    chosen_planet = Planet.query.get(planet_id)
+
+    if chosen_planet is None:
+        rsp = {'msg' : f'Could not find planet with id {planet_id}.'}
+        return jsonify(rsp), 404
+
+    db.session.delete(chosen_planet)
+    db.session.commit()
+
+    return {
+        'msg' : f'Planet #{chosen_planet.id} successfully deleted!'
+    }, 200
+
+
+
+
