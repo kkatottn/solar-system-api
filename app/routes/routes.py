@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, request
+import json
+from flask import Blueprint, jsonify, request, abort, make_response
 from app.models.planet import Planet
 from app import db
 
@@ -8,14 +9,6 @@ from app import db
 #         self.name = name
 #         self.description = description
 #         self.color = color
-
-#     def get_dict(self):
-#         return  {
-#                 'id' : self.id,
-#                 'name' :  self.name,
-#                 'description' : self.description,
-#                 'color' :  self.color
-#             }
     
 # planets = [
 #     Planet(1, 'Mercury','Closest to the Sun and the smallest','slate gray'),
@@ -51,12 +44,7 @@ def get_all_planets():
     planets = Planet.query.all()
     planets_response = []
     for planet in planets:
-        planets_response.append({
-            'id' : planet.id,
-            'name' : planet.name,
-            'description' : planet.description,
-            'color' : planet.color
-        })
+        planets_response.append(planet.get_dict())
     
     return jsonify(planets_response), 200
 
@@ -77,39 +65,14 @@ def get_all_planets():
 
 @planets_bp.route('/<planet_id>', methods=['GET'])
 def get_one_planet(planet_id):
-    try:
-        planet_id = int(planet_id)
-    except ValueError:
-        rsp = {"msg" : f"Planet with id {planet_id} is invalid."}
-        return jsonify(rsp), 400
-        
-    planet = Planet.query.get(planet_id)
-    if planet is None:
-        rsp = {"msg" : f"Could not find planet with id {planet_id}."}
-        return jsonify(rsp), 404
+    planet = validate_planet(planet_id)
 
-    rsp = {
-        'id' : planet.id,
-        'name' : planet.name,
-        'color' :planet.color,
-        'description' : planet.description
-    }
-
-    return jsonify(rsp), 200
+    return jsonify(planet.get_dict()), 200
 
 
 @planets_bp.route('/<planet_id>', methods=['PUT'])
 def update_one_planet(planet_id):
-    try:
-        planet_id = int(planet_id)
-    except ValueError:
-        rsp = {"msg" : f"Planet with id {planet_id} is invalid."}
-        return jsonify(rsp), 400
-    
-    planet = Planet.query.get(planet_id)
-    if planet is None:
-        rsp = {'msg' : f'Could not find planet with id {planet_id}.'}
-        return jsonify(rsp), 404
+    planet = validate_planet(planet_id)
 
     request_body = request.get_json()
     try:
@@ -129,24 +92,29 @@ def update_one_planet(planet_id):
 
 @planets_bp.route('/<planet_id>', methods=['DELETE'])
 def delete_one_planet(planet_id):
-    try:
-        planet_id = int(planet_id)
-    except ValueError:
-        rsp = {"msg" : f"Planet with id {planet_id} is invalid."}
-        return jsonify(rsp), 400
-    
-    chosen_planet = Planet.query.get(planet_id)
+    planet = validate_planet(planet_id)
 
-    if chosen_planet is None:
-        rsp = {'msg' : f'Could not find planet with id {planet_id}.'}
-        return jsonify(rsp), 404
-
-    db.session.delete(chosen_planet)
+    db.session.delete(planet)
     db.session.commit()
 
     return {
-        'msg' : f'Planet #{chosen_planet.id} successfully deleted!'
+        'msg' : f'Planet #{planet.id} successfully deleted!'
     }, 200
+
+def validate_planet(planet_id):
+    try:
+        planet_id = int(planet_id)
+    except:
+        rsp = {"msg" : f"Planet with id {planet_id} is invalid."}
+        abort(make_response(rsp, 400))
+
+    planet = Planet.query.get(planet_id)
+
+    if not planet:
+        rsp = {'msg' : f'Could not find planet with id {planet_id}.'}
+        abort(make_response(rsp, 404))
+    
+    return planet
 
 
 
