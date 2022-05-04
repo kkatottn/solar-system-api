@@ -1,25 +1,13 @@
-import json
 from flask import Blueprint, jsonify, request, abort, make_response
 from app.models.planet import Planet
 from app import db
-
-# class Planet:
-#     def __init__(self, id, name, description, color):
-#         self.id = id
-#         self.name = name
-#         self.description = description
-#         self.color = color
-    
-# planets = [
-#     Planet(1, 'Mercury','Closest to the Sun and the smallest','slate gray'),
-#     Planet(2, 'Venus', 'Second planet from the Sun, little smaller than earth', 'yellow white'),
-#     Planet(3, 'Mars', 'Red planet has rocks and dusts', 'red')
-# ]
 
 planets_bp = Blueprint('planets', __name__, url_prefix='/planets')
 
 @planets_bp.route('', methods=['POST'])
 def create_one_planet():
+    if not request.is_json:
+        return {'msg' : 'Missing json request body'}, 400
     request_body = request.get_json()
     try:
         name = request_body['name']
@@ -76,6 +64,9 @@ def get_one_planet(planet_id):
 def update_one_planet(planet_id):
     planet = validate_planet(planet_id)
 
+    if not request.is_json:
+        return {'msg' : 'Missing json request body'}, 400
+
     request_body = request.get_json()
     try:
         planet.name = request_body['name']
@@ -117,4 +108,3 @@ def validate_planet(planet_id):
         abort(make_response(rsp, 404))
     
     return planet
-    
