@@ -34,34 +34,36 @@ def create_one_planet():
     db.session.add(new_planet)
     db.session.commit()
 
-    return {
-        'id' : new_planet.id,
-        'msg' : f'Succesfully created planet with id {new_planet.id}'
-    }, 201
+    rsp = {'msg' : f'Succesfully created planet with id {new_planet.id}'}
+    return jsonify(rsp), 201
+
 
 @planets_bp.route('', methods=['GET'])
 def get_all_planets():
-    planets = Planet.query.all()
+    params = request.args
+    if 'color' in params and 'description' in params and 'name' in params:
+        color = params['color']
+        description = params['description']
+        name = params['name']
+        planets = Planet.query.filter_by(color=color, description=description, name=name)
+    elif 'color'in params:
+        color = params['color']
+        planets = Planet.query.filter_by(color=color)
+    elif 'description' in params:
+        description = params['description']
+        planets = Planet.query.filter_by(description=description)
+    elif 'name' in params:
+        name = params['name']
+        planets = Planet.query.filter_by(name=name)
+    else:
+        planets = Planet.query.all()
+
     planets_response = []
     for planet in planets:
         planets_response.append(planet.get_dict())
     
     return jsonify(planets_response), 200
 
-
-
-
-
-# @planets_bp.route('', methods=['GET'])
-# def get_all_planets():
-#     planets_response = []
-#     for planet in planets:
-#         planets_response.append(
-#             planet.get_dict()
-#         )
-
-#     return jsonify(planets_response)
-    
 
 @planets_bp.route('/<planet_id>', methods=['GET'])
 def get_one_planet(planet_id):
@@ -86,9 +88,9 @@ def update_one_planet(planet_id):
 
     db.session.commit()
 
-    return {
-        "msg" : f"Planet #{planet_id} successfully updated!"
-    }, 200
+    rsp = {"msg" : f"Planet #{planet_id} successfully updated!"}
+    return jsonify(rsp), 200
+
 
 @planets_bp.route('/<planet_id>', methods=['DELETE'])
 def delete_one_planet(planet_id):
@@ -97,9 +99,9 @@ def delete_one_planet(planet_id):
     db.session.delete(planet)
     db.session.commit()
 
-    return {
-        'msg' : f'Planet #{planet.id} successfully deleted!'
-    }, 200
+    rsp = {'msg' : f'Planet #{planet.id} successfully deleted!'}
+    return jsonify(rsp), 200
+
 
 def validate_planet(planet_id):
     try:
@@ -115,7 +117,4 @@ def validate_planet(planet_id):
         abort(make_response(rsp, 404))
     
     return planet
-
-
-
-
+    
